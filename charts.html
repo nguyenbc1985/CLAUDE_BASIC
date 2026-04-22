@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce Analytics Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: '#090A14',
+                        primary: '#DF6B33',
+                        primaryHover: '#C25A28',
+                        cardBg: '#111827',
+                    },
+                    fontFamily: {
+                        heading: ['Poppins', 'sans-serif'],
+                        body: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #090A14; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+        .opacity-0 { opacity: 0; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090A14; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+    </style>
+</head>
+<body class="min-h-screen font-body text-slate-200">
+
+    <div id="root"></div>
+
+    <script type="module">
+        import React, { useState, useMemo } from 'https://esm.sh/react@19'
+        import { createRoot } from 'https://esm.sh/react-dom@19/client'
+        import {
+            AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+            XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line
+        } from 'https://esm.sh/recharts@2.15.0'
+
+        // ─── Mock Data ───────────────────────────────────────────────────────────
+
+        const revenueData = [
+            { month: 'Jan', revenue: 42800, prevYear: 35200 },
+            { month: 'Feb', revenue: 38200, prevYear: 31800 },
+            { month: 'Mar', revenue: 51600, prevYear: 44100 },
+            { month: 'Apr', revenue: 48900, prevYear: 39600 },
+            { month: 'May', revenue: 62400, prevYear: 51200 },
+            { month: 'Jun', revenue: 71300, prevYear: 58700 },
+            { month: 'Jul', revenue: 68100, prevYear: 54300 },
+            { month: 'Aug', revenue: 75900, prevYear: 62100 },
+            { month: 'Sep', revenue: 83400, prevYear: 67800 },
+            { month: 'Oct', revenue: 92100, prevYear: 74200 },
+            { month: 'Nov', revenue: 108600, prevYear: 89300 },
+            { month: 'Dec', revenue: 124500, prevYear: 101200 },
+        ]
+
+        const businessResults = [
+            { month: 'Jan', revenue: 42800, cost: 26400, profit: 16400, margin: 38.3 },
+            { month: 'Feb', revenue: 38200, cost: 23100, profit: 15100, margin: 39.5 },
+            { month: 'Mar', revenue: 51600, cost: 31600, profit: 20000, margin: 38.8 },
+            { month: 'Apr', revenue: 48900, cost: 29400, profit: 19500, margin: 39.9 },
+            { month: 'May', revenue: 62400, cost: 38100, profit: 24300, margin: 38.9 },
+            { month: 'Jun', revenue: 71300, cost: 43600, profit: 27700, margin: 38.8 },
+            { month: 'Jul', revenue: 68100, cost: 41200, profit: 26900, margin: 39.5 },
+            { month: 'Aug', revenue: 75900, cost: 46200, profit: 29700, margin: 39.1 },
+            { month: 'Sep', revenue: 83400, cost: 50800, profit: 32600, margin: 39.1 },
+            { month: 'Oct', revenue: 92100, cost: 55800, profit: 36300, margin: 39.4 },
+            { month: 'Nov', revenue: 108600, cost: 66100, profit: 42500, margin: 39.1 },
+            { month: 'Dec', revenue: 124500, cost: 76100, profit: 48400, margin: 38.9 },
+        ]
+
+        const trafficData = [
+            { source: 'Organic Search', visitors: 48200, conversion: 3.2 },
+            { source: 'Paid Search', visitors: 31600, conversion: 4.8 },
+            { source: 'Social Media', visitors: 24100, conversion: 2.1 },
+            { source: 'Direct', visitors: 18300, conversion: 5.6 },
+            { source: 'Email', visitors: 12800, conversion: 3.9 },
+            { source: 'Referral', visitors: 9600, conversion: 2.7 },
+        ]
+
+        const campaignData = [
+            { name: 'Search Ads', value: 38, color: '#DF6B33' },
+            { name: 'Social Ads', value: 27, color: '#10B981' },
+            { name: 'Email', value: 18, color: '#3B82F6' },
+            { name: 'Display', value: 11, color: '#8B5CF6' },
+            { name: 'Affiliate', value: 6, color: '#F59E0B' },
+        ]
+
+        const marketingCampaigns = [
+            { id: 'MC001', name: 'Summer Flash Sale', channel: 'Email + SMS', spend: 4200, revenue: 28400, roi: 576, status: 'Active' },
+            { id: 'MC002', name: 'New Product Launch', channel: 'Paid Search', spend: 6800, revenue: 51200, roi: 753, status: 'Active' },
+            { id: 'MC003', name: 'Brand Awareness Q4', channel: 'Social Media', spend: 9500, revenue: 38600, roi: 406, status: 'Active' },
+            { id: 'MC004', name: 'Retargeting Wave 1', channel: 'Display', spend: 3100, revenue: 18900, roi: 510, status: 'Completed' },
+            { id: 'MC005', name: 'Affiliate Program', channel: 'Affiliate', spend: 2600, revenue: 14200, roi: 546, status: 'Completed' },
+        ]
+
+        const topProducts = [
+            { id: 'P-1024', name: 'Wireless Earbuds Pro', category: 'Electronics', sold: 1842, revenue: 92100, growth: 24 },
+            { id: 'P-0847', name: 'Smart Watch Series X', category: 'Electronics', sold: 1204, revenue: 84280, growth: 18 },
+            { id: 'P-1563', name: 'Leather Crossbody Bag', category: 'Fashion', sold: 987, revenue: 64200, growth: 31 },
+            { id: 'P-2201', name: 'Ergonomic Desk Chair', category: 'Furniture', sold: 654, revenue: 58860, growth: 12 },
+            { id: 'P-0893', name: 'Vitamin D3 Complex', category: 'Health', sold: 2108, revenue: 42160, growth: 42 },
+        ]
+
+        // ─── Helpers ──────────────────────────────────────────────────────────────
+
+        const fmt = v => v.toLocaleString()
+        const fmtK = v => `$${(v / 1000).toFixed(1)}K`
+        const fmtPct = v => `${v}%`
+
+        // ─── Chart Tooltip ────────────────────────────────────────────────────────
+
+        const CustomTooltip = ({ active, payload, label }) => {
+            if (!active || !payload?.length) return null
+            return React.createElement('div', {
+                style: { background: '#1F2937', border: '1px solid #374151', borderRadius: 12, padding: '10px 14px' }
+            },
+                React.createElement('p', { className: 'text-slate-400 text-xs mb-2 font-medium' }, label),
+                ...payload.map((p, i) =>
+                    React.createElement('p', {
+                        key: i,
+                        className: 'text-sm font-medium',
+                        style: { color: p.color }
+                    }, `${p.name}: ${typeof p.value === 'number' && p.value > 100 ? fmtK(p.value) : p.value}`)
+                )
+            )
+        }
+
+        const PieTooltip = ({ active, payload }) => {
+            if (!active || !payload?.length) return null
+            return React.createElement('div', {
+                style: { background: '#1F2937', border: '1px solid #374151', borderRadius: 12, padding: '10px 14px', color: '#e2e8f0', fontSize: 13 }
+            }, `${payload[0].name}: ${payload[0].value}%`)
+        }
+
+        // ─── Components ──────────────────────────────────────────────────────────
+
+        const Card = ({ title, icon, children, delay = 200, className = '' }) =>
+            React.createElement('div', {
+                className: `rounded-2xl p-5 animate-fade-in-up opacity-0 ${className}`,
+                style: { animationDelay: `${delay}ms`, background: '#111827', border: '1px solid #1F2937' }
+            },
+                title && React.createElement('div', { className: 'flex items-center gap-2 mb-4' },
+                    React.createElement('span', { style: { color: '#DF6B33' } }, icon),
+                    React.createElement('h2', { className: 'text-base font-semibold text-white font-heading' }, title)
+                ),
+                children
+            )
+
+        const KpiCard = ({ label, value, change, trend, delay }) => {
+            const isUp = trend === 'up'
+            const changeColor = isUp ? 'text-emerald-400' : 'text-red-400'
+            const arrow = isUp ? '▲' : '▼'
+            return React.createElement('div', {
+                className: 'rounded-2xl p-5 animate-fade-in-up opacity-0',
+                style: { animationDelay: `${delay}ms`, background: '#111827', border: '1px solid #1F2937' }
+            },
+                React.createElement('div', { className: 'flex items-center justify-between mb-3' },
+                    React.createElement('div', {
+                        className: 'w-10 h-10 rounded-xl flex items-center justify-center',
+                        style: { background: '#1F2937' }
+                    }, React.createElement('span', { style: { color: '#DF6B33' } }, '◉')),
+                    React.createElement('span', { className: `text-xs font-medium ${changeColor}` }, `${arrow} ${change}`)
+                ),
+                React.createElement('p', { className: 'text-slate-400 text-xs font-medium uppercase tracking-wider mb-1' }, label),
+                React.createElement('p', { className: 'text-2xl font-bold text-white font-heading' }, value)
+            )
+        }
+
+        const TabButton = ({ active, label, onClick }) =>
+            React.createElement('button', {
+                onClick,
+                className: 'px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200',
+                style: {
+                    background: active ? '#DF6B33' : 'transparent',
+                    color: active ? '#fff' : '#94a3b8',
+                }
+            }, label)
+
+        const SortIcon = ({ active, dir }) => {
+            if (!active) return React.createElement('span', { className: 'text-slate-600 ml-1' }, '↕')
+            return React.createElement('span', { className: 'text-orange-400 ml-1' }, dir === 'desc' ? '↓' : '↑')
+        }
+
+        // ─── Main App ────────────────────────────────────────────────────────────
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('revenue')
+            const [sort, setSort] = useState({ col: 'revenue', dir: 'desc' })
+
+            const totalRevenue = revenueData.reduce((s, d) => s + d.revenue, 0)
+            const totalOrders = topProducts.reduce((s, d) => s + d.sold, 0)
+            const avgMargin = (businessResults.reduce((s, d) => s + d.margin, 0) / 12).toFixed(1)
+            const avgRoi = Math.round(marketingCampaigns.reduce((s, d) => s + d.roi, 0) / marketingCampaigns.length)
+            const totalProfit = businessResults.reduce((s, d) => s + d.profit, 0)
+
+            const sortedProducts = useMemo(() => {
+                return [...topProducts].sort((a, b) =>
+                    sort.dir === 'desc' ? b[sort.col] - a[sort.col] : a[sort.col] - b[sort.col]
+                )
+            }, [sort])
+
+            const handleSort = (col) => setSort(prev => ({
+                col,
+                dir: prev.col === col && prev.dir === 'desc' ? 'asc' : 'desc'
+            }))
+
+            return React.createElement('div', { className: 'min-h-screen', style: { background: '#090A14' } },
+
+                // Header
+                React.createElement('header', {
+                    className: 'border-b',
+                    style: { borderColor: '#1F2937', background: '#111827' }
+                },
+                    React.createElement('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between' },
+                        React.createElement('div', { className: 'flex items-center gap-3' },
+                            React.createElement('div', {
+                                className: 'w-9 h-9 rounded-xl flex items-center justify-center',
+                                style: { background: '#DF6B33' }
+                            }, React.createElement('span', { className: 'text-white text-sm' }, '◉')),
+                            React.createElement('span', { className: 'font-heading font-bold text-lg text-white' }, 'E-Commerce Analytics')
+                        ),
+                        React.createElement('nav', { className: 'flex items-center gap-4' },
+                            React.createElement('a', { href: 'login.html', className: 'text-sm text-slate-400 hover:text-white transition-colors' }, 'Sign In'),
+                            React.createElement('a', {
+                                href: 'register.html',
+                                className: 'text-sm px-4 py-2 rounded-xl text-white font-medium transition-all hover:-translate-y-0.5',
+                                style: { background: '#DF6B33' }
+                            }, 'Create Account')
+                        )
+                    )
+                ),
+
+                // Main
+                React.createElement('main', { className: 'max-w-7xl mx-auto px-4 sm:px-6 py-8' },
+
+                    // Page title
+                    React.createElement('div', { className: 'mb-8 animate-fade-in-up opacity-0' },
+                        React.createElement('h1', { className: 'font-heading font-extrabold text-2xl sm:text-3xl text-white mb-1' }, 'Sales Dashboard'),
+                        React.createElement('p', { className: 'text-slate-400 text-sm' }, 'E-Commerce performance overview — Year 2024')
+                    ),
+
+                    // KPI Cards
+                    React.createElement('div', { className: 'grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8' },
+                        React.createElement(KpiCard, { label: 'Total Revenue', value: `$${(totalRevenue / 1000).toFixed(0)}K`, change: '+23.4%', trend: 'up', delay: 50 }),
+                        React.createElement(KpiCard, { label: 'Total Orders', value: fmt(totalOrders), change: '+18.2%', trend: 'up', delay: 100 }),
+                        React.createElement(KpiCard, { label: 'Avg Profit Margin', value: `${avgMargin}%`, change: '+0.8%', trend: 'up', delay: 150 }),
+                        React.createElement(KpiCard, { label: 'Avg Campaign ROI', value: `${avgRoi}%`, change: '-3.1%', trend: 'down', delay: 200 }),
+                    ),
+
+                    // Revenue + Traffic row
+                    React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6' },
+                        // Revenue Chart
+                        React.createElement('div', { className: 'lg:col-span-2' },
+                            React.createElement(Card, { title: 'Monthly Revenue', icon: '📈', delay: 250 },
+                                React.createElement(ResponsiveContainer, { width: '100%', height: 280 },
+                                    React.createElement(AreaChart, { data: revenueData, margin: { top: 5, right: 10, left: 0, bottom: 0 } },
+                                        React.createElement('defs', null,
+                                            React.createElement('linearGradient', { id: 'gradRev', x1: '0', y1: '0', x2: '0', y2: '1' },
+                                                React.createElement('stop', { offset: '5%', stopColor: '#DF6B33', stopOpacity: 0.3 }),
+                                                React.createElement('stop', { offset: '95%', stopColor: '#DF6B33', stopOpacity: 0 })
+                                            ),
+                                            React.createElement('linearGradient', { id: 'gradPrev', x1: '0', y1: '0', x2: '0', y2: '1' },
+                                                React.createElement('stop', { offset: '5%', stopColor: '#3B82F6', stopOpacity: 0.2 }),
+                                                React.createElement('stop', { offset: '95%', stopColor: '#3B82F6', stopOpacity: 0 })
+                                            )
+                                        ),
+                                        React.createElement(CartesianGrid, { strokeDasharray: '3 3', stroke: '#1F2937' }),
+                                        React.createElement(XAxis, { dataKey: 'month', tick: { fill: '#94a3b8', fontSize: 12 }, axisLine: false, tickLine: false }),
+                                        React.createElement(YAxis, { tick: { fill: '#94a3b8', fontSize: 12 }, axisLine: false, tickLine: false, tickFormatter: v => `$${(v/1000).toFixed(0)}K` }),
+                                        React.createElement(Tooltip, { content: React.createElement(CustomTooltip) }),
+                                        React.createElement(Legend, { wrapperStyle: { color: '#94a3b8', fontSize: 12 } }),
+                                        React.createElement(Area, { type: 'monotone', dataKey: 'prevYear', name: '2023', stroke: '#3B82F6', strokeWidth: 2, fill: 'url(#gradPrev)' }),
+                                        React.createElement(Area, { type: 'monotone', dataKey: 'revenue', name: '2024', stroke: '#DF6B33', strokeWidth: 2, fill: 'url(#gradRev)' }),
+                                    )
+                                )
+                            )
+                        ),
+
+                        // Traffic Sources
+                        React.createElement(Card, { title: 'Traffic Sources', icon: '🎯', delay: 300 },
+                            React.createElement(ResponsiveContainer, { width: '100%', height: 200 },
+                                React.createElement(BarChart, { data: trafficData, layout: 'vertical', margin: { top: 0, right: 10, left: 0, bottom: 0 } },
+                                    React.createElement(CartesianGrid, { strokeDasharray: '3 3', stroke: '#1F2937', horizontal: false }),
+                                    React.createElement(XAxis, { type: 'number', tick: { fill: '#94a3b8', fontSize: 11 }, axisLine: false, tickLine: false, tickFormatter: v => `${(v/1000).toFixed(0)}K` }),
+                                    React.createElement(YAxis, { type: 'category', dataKey: 'source', tick: { fill: '#94a3b8', fontSize: 11 }, axisLine: false, tickLine: false, width: 95 }),
+                                    React.createElement(Tooltip, { content: React.createElement(CustomTooltip) }),
+                                    React.createElement(Bar, { dataKey: 'visitors', name: 'Visitors', fill: '#DF6B33', radius: [0, 4, 4, 0], barSize: 14 }),
+                                )
+                            ),
+                            React.createElement('div', { className: 'mt-4 space-y-2' },
+                                ...trafficData.slice(0, 3).map(d =>
+                                    React.createElement('div', { key: d.source, className: 'flex items-center justify-between text-xs' },
+                                        React.createElement('span', { className: 'text-slate-400' }, d.source),
+                                        React.createElement('span', { className: 'text-slate-300 font-medium' }, fmt(d.visitors))
+                                    )
+                                )
+                            )
+                        )
+                    ),
+
+                    // Tabs
+                    React.createElement('div', { className: 'mb-4 flex gap-1 p-1 rounded-xl w-fit', style: { background: '#1F2937' } },
+                        React.createElement(TabButton, { active: activeTab === 'revenue', label: 'Business Results', onClick: () => setActiveTab('revenue') }),
+                        React.createElement(TabButton, { active: activeTab === 'marketing', label: 'Marketing', onClick: () => setActiveTab('marketing') }),
+                    ),
+
+                    // ── Business Results Tab ──────────────────────────────────────
+                    activeTab === 'revenue' && React.createElement('div', { className: 'animate-fade-in-up', style: { animationDelay: '100ms' } },
+
+                        // Business results table
+                        React.createElement(Card, { title: 'Monthly Business Results', icon: '💰', delay: 350 },
+                            React.createElement('div', { className: 'overflow-x-auto' },
+                                React.createElement('table', { className: 'w-full text-sm' },
+                                    React.createElement('thead', null,
+                                        React.createElement('tr', { className: 'border-b', style: { borderColor: '#1F2937' } },
+                                            ...['Month', 'Revenue', 'Cost', 'Profit', 'Margin', 'Trend'].map(h =>
+                                                React.createElement('th', { key: h, className: 'text-left text-xs font-semibold text-slate-400 uppercase tracking-wider py-3 px-2' }, h)
+                                            )
+                                        )
+                                    ),
+                                    React.createElement('tbody', null,
+                                        ...businessResults.map(row =>
+                                            React.createElement('tr', {
+                                                key: row.month,
+                                                className: 'border-b transition-colors hover:bg-slate-800/30',
+                                                style: { borderColor: '#1F2937' }
+                                            },
+                                                React.createElement('td', { className: 'py-3 px-2 text-slate-300 font-medium' }, row.month),
+                                                React.createElement('td', { className: 'py-3 px-2 text-slate-300' }, `$${fmt(row.revenue)}`),
+                                                React.createElement('td', { className: 'py-3 px-2 text-slate-300' }, `$${fmt(row.cost)}`),
+                                                React.createElement('td', { className: 'py-3 px-2 text-emerald-400 font-medium' }, `$${fmt(row.profit)}`),
+                                                React.createElement('td', { className: 'py-3 px-2 text-slate-300' }, `${row.margin}%`),
+                                                React.createElement('td', { className: 'py-3 px-2' },
+                                                    React.createElement('div', { className: 'flex items-center gap-1' },
+                                                        React.createElement('div', { className: 'w-16 h-1.5 rounded-full overflow-hidden flex', style: { background: '#1F2937' } },
+                                                            React.createElement('div', { className: 'h-full rounded-full', style: { width: `${row.margin}%`, background: '#DF6B33' } })
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    ),
+                                    React.createElement('tfoot', null,
+                                        React.createElement('tr', { className: 'text-slate-300 font-semibold' },
+                                            React.createElement('td', { className: 'py-3 px-2' }, 'Total'),
+                                            React.createElement('td', { className: 'py-3 px-2' }, `$${fmt(revenueData.reduce((s,d)=>s+d.revenue,0))}`),
+                                            React.createElement('td', { className: 'py-3 px-2' }, `$${fmt(businessResults.reduce((s,d)=>s+d.cost,0))}`),
+                                            React.createElement('td', { className: 'py-3 px-2 text-emerald-400' }, `$${fmt(totalProfit)}`),
+                                            React.createElement('td', { className: 'py-3 px-2' }, `${avgMargin}%`),
+                                            React.createElement('td', null)
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        // Profit trend line chart
+                        React.createElement('div', { className: 'mt-6' },
+                            React.createElement(Card, { title: 'Profit Trend', icon: '📊', delay: 380 },
+                                React.createElement(ResponsiveContainer, { width: '100%', height: 240 },
+                                    React.createElement(LineChart, { data: businessResults, margin: { top: 5, right: 10, left: 0, bottom: 0 } },
+                                        React.createElement(CartesianGrid, { strokeDasharray: '3 3', stroke: '#1F2937' }),
+                                        React.createElement(XAxis, { dataKey: 'month', tick: { fill: '#94a3b8', fontSize: 12 }, axisLine: false, tickLine: false }),
+                                        React.createElement(YAxis, { tick: { fill: '#94a3b8', fontSize: 12 }, axisLine: false, tickLine: false, tickFormatter: v => `$${(v/1000).toFixed(0)}K` }),
+                                        React.createElement(Tooltip, { content: React.createElement(CustomTooltip) }),
+                                        React.createElement(Line, { type: 'monotone', dataKey: 'profit', name: 'Profit', stroke: '#10B981', strokeWidth: 2, dot: { fill: '#10B981', r: 3 } }),
+                                        React.createElement(Line, { type: 'monotone', dataKey: 'cost', name: 'Cost', stroke: '#EF4444', strokeWidth: 2, dot: { fill: '#EF4444', r: 3 } }),
+                                    )
+                                )
+                            )
+                        ),
+
+                        // Top Products table
+                        React.createElement('div', { className: 'mt-6' },
+                            React.createElement(Card, { title: 'Top Selling Products', icon: '🛒', delay: 410 },
+                                React.createElement('div', { className: 'overflow-x-auto' },
+                                    React.createElement('table', { className: 'w-full text-sm' },
+                                        React.createElement('thead', null,
+                                            React.createElement('tr', { className: 'border-b', style: { borderColor: '#1F2937' } },
+                                                ...[
+                                                    { label: 'ID', key: 'id' },
+                                                    { label: 'Product', key: 'name' },
+                                                    { label: 'Category', key: 'category' },
+                                                    { label: 'Sold', key: 'sold' },
+                                                    { label: 'Revenue', key: 'revenue' },
+                                                    { label: 'Growth', key: 'growth' },
+                                                ].map(h =>
+                                                    React.createElement('th', {
+                                                        key: h.key,
+                                                        onClick: () => handleSort(h.key),
+                                                        className: 'text-left text-xs font-semibold text-slate-400 uppercase tracking-wider py-3 px-2 cursor-pointer hover:text-slate-200 transition-colors'
+                                                    },
+                                                        h.label,
+                                                        React.createElement(SortIcon, { active: sort.col === h.key, dir: sort.dir })
+                                                    )
+                                                )
+                                            )
+                                        ),
+                                        React.createElement('tbody', null,
+                                            ...sortedProducts.map(row =>
+                                                React.createElement('tr', {
+                                                    key: row.id,
+                                                    className: 'border-b transition-colors hover:bg-slate-800/30',
+                                                    style: { borderColor: '#1F2937' }
+                                                },
+                                                    React.createElement('td', { className: 'py-3 px-2 text-slate-500 font-mono text-xs' }, row.id),
+                                                    React.createElement('td', { className: 'py-3 px-2 text-slate-300 font-medium' }, row.name),
+                                                    React.createElement('td', { className: 'py-3 px-2' },
+                                                        React.createElement('span', {
+                                                            className: 'px-2 py-1 rounded-full text-xs font-medium',
+                                                            style: { background: '#1F2937', color: '#94a3b8' }
+                                                        }, row.category)
+                                                    ),
+                                                    React.createElement('td', { className: 'py-3 px-2 text-slate-300' }, fmt(row.sold)),
+                                                    React.createElement('td', { className: 'py-3 px-2 text-slate-300' }, `$${fmt(row.revenue)}`),
+                                                    React.createElement('td', { className: 'py-3 px-2 text-emerald-400 font-medium' }, `+${row.growth}%`)
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    ),
+
+                    // ── Marketing Tab ──────────────────────────────────────────────
+                    activeTab === 'marketing' && React.createElement('div', { className: 'animate-fade-in-up', style: { animationDelay: '100ms' } },
+
+                        React.createElement('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6' },
+
+                            // Pie Chart
+                            React.createElement(Card, { title: 'Ad Spend Distribution', icon: '📈', delay: 350 },
+                                React.createElement(ResponsiveContainer, { width: '100%', height: 240 },
+                                    React.createElement(PieChart, null,
+                                        React.createElement(Pie, {
+                                            data: campaignData, cx: '50%', cy: '50%',
+                                            innerRadius: 60, outerRadius: 90,
+                                            paddingAngle: 3, dataKey: 'value', stroke: 'none'
+                                        },
+                                            campaignData.map((entry, i) =>
+                                                React.createElement(Cell, { key: i, fill: entry.color })
+                                            )
+                                        ),
+                                        React.createElement(Tooltip, { content: React.createElement(PieTooltip) }),
+                                        React.createElement(Legend, { wrapperStyle: { color: '#94a3b8', fontSize: 12 } })
+                                    )
+                                )
+                            ),
+
+                            // Campaigns Table
+                            React.createElement('div', { className: 'lg:col-span-2' },
+                                React.createElement(Card, { title: 'Marketing Campaigns', icon: '🎯', delay: 400 },
+                                    React.createElement('div', { className: 'overflow-x-auto' },
+                                        React.createElement('table', { className: 'w-full text-sm' },
+                                            React.createElement('thead', null,
+                                                React.createElement('tr', { className: 'border-b', style: { borderColor: '#1F2937' } },
+                                                    ...['Campaign', 'Channel', 'Spend', 'Revenue', 'ROI', 'Status'].map(h =>
+                                                        React.createElement('th', { key: h, className: 'text-left text-xs font-semibold text-slate-400 uppercase tracking-wider py-3 px-2' }, h)
+                                                    )
+                                                )
+                                            ),
+                                            React.createElement('tbody', null,
+                                                ...marketingCampaigns.map(row =>
+                                                    React.createElement('tr', {
+                                                        key: row.id,
+                                                        className: 'border-b transition-colors hover:bg-slate-800/30',
+                                                        style: { borderColor: '#1F2937' }
+                                                    },
+                                                        React.createElement('td', { className: 'py-3 px-2' },
+                                                            React.createElement('p', { className: 'text-slate-300 font-medium text-xs' }, row.name),
+                                                            React.createElement('p', { className: 'text-slate-500 text-xs' }, row.id)
+                                                        ),
+                                                        React.createElement('td', { className: 'py-3 px-2 text-slate-400 text-xs' }, row.channel),
+                                                        React.createElement('td', { className: 'py-3 px-2 text-slate-300' }, `$${fmt(row.spend)}`),
+                                                        React.createElement('td', { className: 'py-3 px-2 text-slate-300' }, `$${fmt(row.revenue)}`),
+                                                        React.createElement('td', { className: 'py-3 px-2 text-emerald-400 font-medium' }, `${row.roi}%`),
+                                                        React.createElement('td', { className: 'py-3 px-2' },
+                                                            React.createElement('span', {
+                                                                className: 'px-2 py-1 rounded-full text-xs font-medium',
+                                                                style: {
+                                                                    background: row.status === 'Active' ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.1)',
+                                                                    color: row.status === 'Active' ? '#10B981' : '#94a3b8',
+                                                                }
+                                                            }, row.status)
+                                                        )
+                                                    )
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        ),
+
+                        // Conversion Funnel
+                        React.createElement(Card, { title: 'Conversion by Traffic Source', icon: '🎯', delay: 450 },
+                            React.createElement('div', { className: 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3' },
+                                ...trafficData.map(d =>
+                                    React.createElement('div', {
+                                        key: d.source,
+                                        className: 'rounded-xl p-3 text-center',
+                                        style: { background: '#1F2937' }
+                                    },
+                                        React.createElement('p', { className: 'text-slate-400 text-xs mb-2 truncate' }, d.source),
+                                        React.createElement('p', { className: 'text-lg font-bold text-white' }, `${d.conversion}%`),
+                                        React.createElement('p', { className: 'text-slate-500 text-xs' }, 'conv. rate'),
+                                        React.createElement('div', { className: 'mt-2 mx-auto rounded-full h-1.5 overflow-hidden', style: { background: '#374151' } },
+                                            React.createElement('div', { className: 'h-full rounded-full', style: { width: `${d.conversion * 10}%`, background: '#DF6B33' } })
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                ),
+
+                // Footer
+                React.createElement('footer', { className: 'border-t mt-12', style: { borderColor: '#1F2937' } },
+                    React.createElement('div', { className: 'max-w-7xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2' },
+                        React.createElement('p', { className: 'text-slate-500 text-xs' }, 'E-Commerce Analytics Dashboard — Mock data for demonstration purposes'),
+                        React.createElement('div', { className: 'flex items-center gap-4' },
+                            React.createElement('a', { href: 'login.html', className: 'text-xs text-slate-500 hover:text-slate-300 transition-colors' }, 'Sign In'),
+                            React.createElement('a', { href: 'register.html', className: 'text-xs text-slate-500 hover:text-slate-300 transition-colors' }, 'Register'),
+                        )
+                    )
+                )
+            )
+        }
+
+        createRoot(document.getElementById('root')).render(React.createElement(App))
+    </script>
+</body>
+</html>
